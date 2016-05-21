@@ -1,12 +1,14 @@
 /**
- * @fileoverview Event System (John Resig - Secrets of a JS Ninja http://jsninja.com/)
+ * @file events.js
+ *
+ * Event System (John Resig - Secrets of a JS Ninja http://jsninja.com/)
  * (Original book version wasn't completely usable, so fixed some things and made Closure Compiler compatible)
  * This should work very similarly to jQuery's events, however it's based off the book version which isn't as
  * robust as jquery's, so there's probably some differences.
  */
 
-import * as Dom from './dom.js';
-import * as Guid from './guid.js';
+import  * as Dom from './dom.js';
+import  * as Guid from './guid.js';
 import window from 'global/window';
 import document from 'global/document';
 
@@ -15,16 +17,18 @@ import document from 'global/document';
  * It stores the handler function in a separate cache object
  * and adds a generic handler to the element's event,
  * along with a unique id (guid) to the element.
+ *
  * @param  {Element|Object}   elem Element or object to bind listeners to
  * @param  {String|Array}   type Type of event to bind to.
  * @param  {Function} fn   Event listener.
+ * @method on
  */
 export function on(elem, type, fn){
   if (Array.isArray(type)) {
     return _handleMultipleEvents(on, elem, type, fn);
   }
 
-  let data = Dom.getData(elem);
+  let data = Dom.getElData(elem);
 
   // We need a place to store all our handler data
   if (!data.handlers) data.handlers = {};
@@ -38,7 +42,7 @@ export function on(elem, type, fn){
   if (!data.dispatcher) {
     data.disabled = false;
 
-    data.dispatcher = function (event){
+    data.dispatcher = function (event, hash){
 
       if (data.disabled) return;
       event = fixEvent(event);
@@ -53,7 +57,7 @@ export function on(elem, type, fn){
           if (event.isImmediatePropagationStopped()) {
             break;
           } else {
-            handlersCopy[m].call(elem, event);
+            handlersCopy[m].call(elem, event, hash);
           }
         }
       }
@@ -71,15 +75,17 @@ export function on(elem, type, fn){
 
 /**
  * Removes event listeners from an element
+ *
  * @param  {Element|Object}   elem Object to remove listeners from
  * @param  {String|Array=}   type Type of listener to remove. Don't include to remove all events from element.
  * @param  {Function} fn   Specific listener to remove. Don't include to remove listeners for an event type.
+ * @method off
  */
 export function off(elem, type, fn) {
-  // Don't want to add a cache object through getData if not needed
-  if (!Dom.hasData(elem)) return;
+  // Don't want to add a cache object through getElData if not needed
+  if (!Dom.hasElData(elem)) return;
 
-  let data = Dom.getData(elem);
+  let data = Dom.getElData(elem);
 
   // If no events exist, nothing to unbind
   if (!data.handlers) { return; }
@@ -125,14 +131,18 @@ export function off(elem, type, fn) {
 
 /**
  * Trigger an event for an element
+ *
  * @param  {Element|Object}      elem  Element to trigger an event on
  * @param  {Event|Object|String} event A string (the type) or an event object with a type attribute
+ * @param  {Object} [hash] data hash to pass along with the event
+ * @return {Boolean=} Returned only if default was prevented
+ * @method trigger
  */
-export function trigger(elem, event) {
+export function trigger(elem, event, hash) {
   // Fetches element data and a reference to the parent (for bubbling).
   // Don't want to add a data object to cache for every parent,
-  // so checking hasData first.
-  var elemData = (Dom.hasData(elem)) ? Dom.getData(elem) : {};
+  // so checking hasElData first.
+  var elemData = (Dom.hasElData(elem)) ? Dom.getElData(elem) : {};
   var parent = elem.parentNode || elem.ownerDocument;
       // type = event.type || event,
       // handler;
@@ -146,17 +156,17 @@ export function trigger(elem, event) {
 
   // If the passed element has a dispatcher, executes the established handlers.
   if (elemData.dispatcher) {
-    elemData.dispatcher.call(elem, event);
+    elemData.dispatcher.call(elem, event, hash);
   }
 
   // Unless explicitly stopped or the event does not bubble (e.g. media events)
     // recursively calls this function to bubble the event up the DOM.
-    if (parent && !event.isPropagationStopped() && event.bubbles !== false) {
-    trigger(parent, event);
+    if (parent && !event.isPropagationStopped() && event.bubbles === true) {
+      trigger.call(null, parent, event, hash);
 
   // If at the top of the DOM, triggers the default action unless disabled.
   } else if (!parent && !event.defaultPrevented) {
-    var targetData = Dom.getData(event.target);
+    var targetData = Dom.getElData(event.target);
 
     // Checks if the target has a default action for this event.
     if (event.target[event.type]) {
@@ -177,9 +187,11 @@ export function trigger(elem, event) {
 
 /**
  * Trigger a listener only once for an event
+ *
  * @param  {Element|Object}   elem Element or object to
- * @param  {String|Array}   type
- * @param  {Function} fn
+ * @param  {String|Array}   type Name/type of event
+ * @param  {Function} fn Event handler function
+ * @method one
  */
 export function one(elem, type, fn) {
   if (Array.isArray(type)) {
@@ -196,9 +208,11 @@ export function one(elem, type, fn) {
 
 /**
  * Fix a native event to have standard property values
+ *
  * @param  {Object} event Event object to fix
  * @return {Object}
  * @private
+ * @method fixEvent
  */
 export function fixEvent(event) {
 
@@ -222,7 +236,9 @@ export function fixEvent(event) {
     for (var key in old) {
       // Safari 6.0.3 warns you if you try to copy deprecated layerX/Y
       // Chrome warns you if you try to copy deprecated keyboardEvent.keyLocation
-      if (key !== 'layerX' && key !== 'layerY' && key !== 'keyLocation') {
+      // and webkitMovementX/Y
+      if (key !== 'layerX' && key !== 'layerY' && key !== 'keyLocation' &&
+          key !== 'webkitMovementX' && key !== 'webkitMovementY') {
         // Chrome 32+ warns if you try to copy deprecated returnValue, but
         // we still want to if preventDefault isn't supported (IE8).
         if (!(key === 'returnValue' && old.preventDefault)) {
@@ -237,9 +253,11 @@ export function fixEvent(event) {
     }
 
     // Handle which other element the event is related to
-    event.relatedTarget = event.fromElement === event.target ?
-      event.toElement :
-      event.fromElement;
+    if (!event.relatedTarget) {
+      event.relatedTarget = event.fromElement === event.target ?
+        event.toElement :
+        event.fromElement;
+    }
 
     // Stop the default browser action
     event.preventDefault = function () {
@@ -247,6 +265,7 @@ export function fixEvent(event) {
         old.preventDefault();
       }
       event.returnValue = false;
+      old.returnValue = false;
       event.defaultPrevented = true;
     };
 
@@ -258,6 +277,7 @@ export function fixEvent(event) {
         old.stopPropagation();
       }
       event.cancelBubble = true;
+      old.cancelBubble = true;
       event.isPropagationStopped = returnTrue;
     };
 
@@ -304,12 +324,14 @@ export function fixEvent(event) {
 
 /**
  * Clean up the listener cache and dispatchers
+*
  * @param  {Element|Object} elem Element to clean up
  * @param  {String} type Type of event to clean up
  * @private
+ * @method _cleanUpEvents
  */
 function _cleanUpEvents(elem, type) {
-  var data = Dom.getData(elem);
+  var data = Dom.getElData(elem);
 
   // Remove the events of a particular type if there are none left
   if (data.handlers[type].length === 0) {
@@ -330,25 +352,23 @@ function _cleanUpEvents(elem, type) {
     delete data.handlers;
     delete data.dispatcher;
     delete data.disabled;
-
-    // data.handlers = null;
-    // data.dispatcher = null;
-    // data.disabled = null;
   }
 
-  // Finally remove the expando if there is no data left
-  if (Object.getOwnPropertyNames(data).length <= 0) {
-    Dom.removeData(elem);
+  // Finally remove the element data if there is no data left
+  if (Object.getOwnPropertyNames(data).length === 0) {
+    Dom.removeElData(elem);
   }
 }
 
 /**
  * Loops through an array of event types and calls the requested method for each type.
+ *
  * @param  {Function} fn   The event method we want to use.
  * @param  {Element|Object} elem Element or object to bind listeners to
  * @param  {String}   type Type of event to bind to.
  * @param  {Function} callback   Event listener.
  * @private
+ * @function _handleMultipleEvents
  */
 function _handleMultipleEvents(fn, elem, types, callback) {
   types.forEach(function(type) {

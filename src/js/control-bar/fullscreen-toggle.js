@@ -1,31 +1,45 @@
-import Button from '../button';
+/**
+ * @file fullscreen-toggle.js
+ */
+import Button from '../button.js';
+import Component from '../component.js';
 
 /**
  * Toggle fullscreen video
- * @param {Player|Object} player
- * @param {Object=} options
- * @class
- * @extends vjs.Button
+ *
+ * @extends Button
+ * @class FullscreenToggle
  */
 class FullscreenToggle extends Button {
 
+  /**
+   * Allow sub components to stack CSS class names
+   *
+   * @return {String} The constructed class name
+   * @method buildCSSClass
+   */
   buildCSSClass() {
     return `vjs-fullscreen-control ${super.buildCSSClass()}`;
   }
 
+  /**
+   * Handles click for full screen
+   *
+   * @method handleClick
+   */
   handleClick() {
     if (!this.player_.isFullscreen()) {
       this.player_.requestFullscreen();
-      this.controlText_.innerHTML = this.localize('Non-Fullscreen');
+      this.controlText('Non-Fullscreen');
     } else {
       this.player_.exitFullscreen();
-      this.controlText_.innerHTML = this.localize('Fullscreen');
+      this.controlText('Fullscreen');
     }
   }
 
 }
 
-FullscreenToggle.prototype.buttonText = 'Fullscreen';
+FullscreenToggle.prototype.controlText_ = 'Fullscreen';
 
-Button.registerComponent('FullscreenToggle', FullscreenToggle);
+Component.registerComponent('FullscreenToggle', FullscreenToggle);
 export default FullscreenToggle;

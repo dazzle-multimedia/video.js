@@ -43,6 +43,24 @@ test('should add and remove multiple event listeners to an element with a single
   Events.trigger(el, 'event2'); // No event2 should happen.
 });
 
+test('should be possible to pass data when you trigger an event', function () {
+  expect(6);
+  var el = document.createElement('div');
+  var fakeData1 = 'Fake Data 1';
+  var fakeData2 = {txt: 'Fake Data 2'};
+
+  var listener = function(evt, hash){
+    ok(true, 'Callback triggered');
+    deepEqual(fakeData1, hash.d1, 'Shoulbe be passed to the handler');
+    deepEqual(fakeData2, hash.d2, 'Shoulbe be passed to the handler');
+  };
+
+  Events.on(el, ['event1', 'event2'], listener);
+  Events.trigger(el, 'event1', { d1: fakeData1, d2:fakeData2});
+  Events.trigger(el, 'event2', { d1: fakeData1, d2:fakeData2});
+
+});
+
 test('should remove all listeners of a type', function(){
   var el = document.createElement('div');
   var clicks = 0;
@@ -200,4 +218,24 @@ test('should have a defaultPrevented property on an event that was prevent from 
   });
 
   Events.trigger(el, 'test');
+});
+
+test('should have relatedTarget correctly set on the event', function() {
+  expect(2);
+
+  var el1 = document.createElement('div'),
+      el2 = document.createElement('div'),
+      relatedEl = document.createElement('div');
+
+  Events.on(el1, 'click', function(e){
+    equal(e.relatedTarget, relatedEl, 'relatedTarget is set for all browsers when related element is set on the event');
+  });
+
+  Events.trigger(el1, { type:'click', relatedTarget:relatedEl });
+
+  Events.on(el2, 'click', function(e) {
+    equal(e.relatedTarget, null, 'relatedTarget is null when none is provided');
+  });
+
+  Events.trigger(el2, { type:'click', relatedTarget:undefined });
 });

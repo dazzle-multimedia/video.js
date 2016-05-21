@@ -59,8 +59,11 @@ test('should be able to access expected player API methods', function() {
   ok(player.usingNativeControls, 'usingNativeControls exists');
   ok(player.isFullscreen, 'isFullscreen exists');
 
-  // TextTrack methods
+  // Track methods
+  ok(player.audioTracks, 'audioTracks exists');
+  ok(player.videoTracks, 'videoTracks exists');
   ok(player.textTracks, 'textTracks exists');
+  ok(player.remoteTextTrackEls, 'remoteTextTrackEls exists');
   ok(player.remoteTextTracks, 'remoteTextTracks exists');
   ok(player.addTextTrack, 'addTextTrack exists');
   ok(player.addRemoteTextTrack, 'addRemoteTextTrack exists');
@@ -153,7 +156,7 @@ test('should export ready api call to public', function() {
 });
 
 test('should export useful components to the public', function () {
-  ok(videojs.TOUCH_ENABLED !== undefined, 'Touch detection should be public');
+  ok(videojs.browser.TOUCH_ENABLED !== undefined, 'Touch detection should be public');
   ok(videojs.getComponent('ControlBar'), 'ControlBar should be public');
   ok(videojs.getComponent('Button'), 'Button should be public');
   ok(videojs.getComponent('PlayToggle'), 'PlayToggle should be public');
@@ -169,12 +172,10 @@ test('should export useful components to the public', function () {
   ok(videojs.getComponent('SeekBar'), 'SeekBar should be public');
   ok(videojs.getComponent('LoadProgressBar'), 'LoadProgressBar should be public');
   ok(videojs.getComponent('PlayProgressBar'), 'PlayProgressBar should be public');
-  ok(videojs.getComponent('SeekHandle'), 'SeekHandle should be public');
   ok(videojs.getComponent('VolumeControl'), 'VolumeControl should be public');
   ok(videojs.getComponent('VolumeBar'), 'VolumeBar should be public');
   ok(videojs.getComponent('VolumeLevel'), 'VolumeLevel should be public');
   ok(videojs.getComponent('VolumeMenuButton'), 'VolumeMenuButton should be public');
-  ok(videojs.getComponent('VolumeHandle'), 'VolumeHandle should be public');
   ok(videojs.getComponent('MuteToggle'), 'MuteToggle should be public');
   ok(videojs.getComponent('PosterImage'), 'PosterImage should be public');
   ok(videojs.getComponent('Menu'), 'Menu should be public');
@@ -189,6 +190,7 @@ test('should export useful components to the public', function () {
   ok(videojs.getComponent('TextTrackButton'), 'TextTrackButton should be public');
   ok(videojs.getComponent('CaptionsButton'), 'CaptionsButton should be public');
   ok(videojs.getComponent('SubtitlesButton'), 'SubtitlesButton should be public');
+  ok(videojs.getComponent('DescriptionsButton'), 'DescriptionsButton should be public');
   ok(videojs.getComponent('ChaptersButton'), 'ChaptersButton should be public');
   ok(videojs.getComponent('ChaptersTrackMenuItem'), 'ChaptersTrackMenuItem should be public');
 
@@ -213,7 +215,7 @@ test('should be able to initialize player twice on the same tag using string ref
   player.dispose();
 });
 
-test('videojs.players should be available after minification', function() {
+test('videojs.getPlayers() should be available after minification', function() {
   var videoTag = testHelperMakeTag();
   var id = videoTag.id;
 
@@ -221,7 +223,7 @@ test('videojs.players should be available after minification', function() {
   fixture.appendChild(videoTag);
 
   var player = videojs(id);
-  ok(videojs.players[id] === player, 'videojs.players is available');
+  ok(videojs.getPlayers()[id] === player, 'videojs.getPlayers() is available');
 
   player.dispose();
 });
@@ -230,10 +232,8 @@ test('component can be subclassed externally', function(){
   var Component = videojs.getComponent('Component');
   var ControlBar = videojs.getComponent('ControlBar');
 
-  var player = new (Component.extend({
-    languages: function(){},
+  var player = new (videojs.extend(Component, {
     reportUserActivity: function(){},
-    language: function(){},
     textTracks: function(){ return {
         addEventListener: Function.prototype,
         removeEventListener: Function.prototype
@@ -256,7 +256,7 @@ function testHelperMakeTag(){
 
 test('should extend Component', function(){
   var Component = videojs.getComponent('Component');
-  var MyComponent = videojs.extends(Component, {
+  var MyComponent = videojs.extend(Component, {
     constructor: function() {
       this.bar = true;
     },
@@ -271,7 +271,7 @@ test('should extend Component', function(){
   ok(myComponent.bar, 'the constructor function is used');
   ok(myComponent.foo(), 'instance methods are applied');
 
-  var NoMethods = videojs.extends(Component);
+  var NoMethods = videojs.extend(Component);
   var noMethods = new NoMethods({});
   ok(noMethods.on, 'should extend component with no methods or constructor');
 });

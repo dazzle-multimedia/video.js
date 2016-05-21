@@ -1,10 +1,14 @@
-import Player from './player';
+/**
+ * @file plugins.js
+ */
+import Player from './player.js';
 
 /**
- * the method for registering a video.js plugin
+ * The method for registering a video.js plugin
  *
  * @param  {String} name The name of the plugin
  * @param  {Function} init The function that is run when the player inits
+ * @method plugin
  */
 var plugin = function(name, init){
   Player.prototype[name] = init;

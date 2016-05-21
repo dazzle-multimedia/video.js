@@ -4,7 +4,7 @@ import TestHelpers from './test-helpers.js';
 q.module('Button');
 
 test('should localize its text', function(){
-  expect(1);
+  expect(3);
 
   var player, testButton, el;
 
@@ -18,8 +18,10 @@ test('should localize its text', function(){
   });
 
   testButton = new Button(player);
-  testButton.buttonText = 'Play';
+  testButton.controlText_ = 'Play';
   el = testButton.createEl();
 
-  ok(el.innerHTML, 'Juego', 'translation was successful');
+  ok(el.nodeName.toLowerCase().match('button'));
+  ok(el.innerHTML.match(/vjs-control-text"?>Juego/));
+  equal(el.getAttribute('title'), 'Juego');
 });
